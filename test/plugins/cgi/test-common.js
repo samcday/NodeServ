@@ -13,8 +13,20 @@ var cgiSamples = {
 			"Content-type": "text/awesome"
 		},
 		body: "Hello!"
+	},
+	
+	"large": {
+		headers: {
+			"Content-length": "quite large",
+			"Test": "test"
+		},
+		body: "" // generated later
 	}
 };
+
+// Generate a large response body for the large cgi sample. (~1MB)
+while(cgiSamples.large.body.length < (1024 * 1024))
+	cgiSamples.large.body += Math.random();
 
 // Converts the above cgi samples into a complete cgi response string.
 function createCGIResponse(sample) {
@@ -25,33 +37,67 @@ function createCGIResponse(sample) {
 	str += "\r\n";
 	
 	str += sample.body;
-	str += "\r\n";
 	
 	return str;
 };
 
-vows.describe("CGI Common").addBatch({
-	"When a CGIResponseStreamReader is provided a simple CGI response to parse": {
-		topic: new cgiCommon.CGIResponseStreamReader(new StringStream(createCGIResponse(cgiSamples.simple))),
-		
-		"the header event is called": {
+function createCGISampleTestContext(cgiSample, feedAmount) {
+	var context = {
+		topic: new cgiCommon.CGIResponseStreamReader(new StringStream(createCGIResponse(cgiSample), feedAmount)),
+
+		"the headers": {
 			topic: function(reader) {
 				reader.on("headers", this.callback.bind(this, null));
 			},
-			
-			"it should contain the correct headers": function(headers) {
-				console.log(headers);
+
+			"should be an object": function(headers) {
+				assert.isObject(headers);
+			},
+			"should contain the correct values": function(headers) {
 				assert.isObject(headers);
 
-				Object.keys(cgiSamples.simple.headers).forEach(function(name) {
+				Object.keys(cgiSample.headers).forEach(function(name) {
 					assert.isString(headers[name], "Contains header '" + name + "'");
-					assert.equal(headers[name], cgiSamples.simple.headers[name]);
+					assert.equal(headers[name], cgiSample.headers[name]);
 				});
 			}
 		},
-		
-		"the data event is called": {
+
+		"the data": {
+			topic: function(reader) {
+				var buffers = [];
+
+				reader.on("data", function(data) {
+					buffers[buffers.length] = data;
+				});
+				
+				reader.on("end", function() {
+					this.callback(null, buffers);
+				}.bind(this));
+			},
 			
+			"should be one or more buffers": function(buffers) {
+				buffers.forEach(function(buffer) {
+					assert.isObject(buffer);
+					assert.instanceOf(buffer, Buffer);
+				});
+			},
+			"should be same content as before": function(buffers) {
+				var body = "";
+				buffers.forEach(function(buffer) {
+					body += buffer.toString();
+				});
+
+				assert.equal(body, cgiSample.body);
+			}
 		}
-	}
+	};
+
+	return context;
+}
+
+vows.describe("CGIResponseStreamReader").addBatch({
+	"When parsing a simple response": createCGISampleTestContext(cgiSamples.simple),
+	"When parsing a simple *trickle-fed* response": createCGISampleTestContext(cgiSamples.simple, 1),
+	"When parsing a large response": createCGISampleTestContext(cgiSamples.large),
 }).export(module);

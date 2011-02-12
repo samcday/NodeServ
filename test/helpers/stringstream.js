@@ -4,15 +4,15 @@ var Stream = require("stream").Stream,
 
 var StringStream = module.exports = function(data, increment, interval, paused) {
 	this.data = new Buffer(data);
-	this.increment = increment || 10;
-	this.interval = interval || 10;
+	this.increment = increment || Math.round(data.length / 4);
+	this.interval = interval || 1;
 
 	Stream.call(this);
 	this.readable = true;
 	this.writable = false;
 	
 	this.trickleFeeder = null;
-	!this.paused && this.resume();
+	!this.paused && process.nextTick(this.resume.bind(this));
 };
 
 util.inherits(StringStream, Stream);
