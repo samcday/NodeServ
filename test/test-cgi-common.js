@@ -1,7 +1,7 @@
 // Tests for the common functionality shared between CGI modules.
 var vows = require("vows"),
-	cgiCommon = require("../../../lib/plugins/cgi/common.js"),
-	StringStream = require("../../helpers/stringstream.js"),
+	cgiCommon = require("../lib/plugins/cgi/common.js"),
+	StringStream = require("./helpers/stringstream.js"),
 	assert = require("assert");
 
 // Create some CGI response samples.
