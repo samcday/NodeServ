@@ -4,7 +4,7 @@ var NodeServ = require("../../lib/"),
 	path = require("path"),
 	http = require("http");
 
-var port = 10000;
+var port = 12000;
 
 var TestNodeServ = module.exports = function(config) {
 	config = config || {};
@@ -31,7 +31,7 @@ var TestNodeServ = module.exports = function(config) {
 					console.log(res);
 				});
 			});
-			//request.end();
+			request.end();
 		};
 	});
 };
